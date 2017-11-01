@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#define M 999999999
 typedef struct reg* arestas;
 typedef struct no* vertice;
-typedef struct graf* grafo; 
+typedef struct graf* grafo;
+typedef struct dij* distancias; 
 
 typedef struct reg{
 	int distancia;
@@ -14,6 +16,7 @@ typedef struct reg{
 typedef struct no{
 	int id;
 	int marcado;
+	distancias dist;
 	arestas primeiraAresta;
 	arestas ultimaAresta;
 	vertice proximoNaOrdemDeInsercao;
@@ -26,12 +29,21 @@ typedef struct graf{
 	vertice ultimoVertice;
 }cabecalhoDeUmGrafo;
 
+typedef struct dij  {
+	int distancia;
+	int id;
+	int deOndeVeio;
+	distancias prox;
+}cabecalhoDaListaDeDistanciasDijkstra;
+
 void startaGrafo(grafo *g){
 	(*g) = (grafo) malloc (sizeof(struct graf));
 	(*g)->primeiroVertice = NULL;	
 	(*g)->ultimoVertice = NULL;
 	(*g)->elementos = 0;
 }
+
+
 
 int criaVertice(grafo g,int id){
 	if(existeVertice(g,id))	return 0;	
@@ -129,8 +141,8 @@ void printaGrafo(grafo g){
 	while(p){
 		printf("%d",p->id);
 		printf("(%d)",p->marcado);
+		printf("[%d]",p->dist->distancia );
 		printf(" -> ");
-		
 		q = p->primeiraAresta;
 		while(q){
 			printf("%d - ",q->verticeVizinho->id);
@@ -146,7 +158,66 @@ int main(){
 	grafo g;
 	startaGrafo(&g);
 	int i;
-	for(i=0;i<=5;i++)
+	char resp;
+	int id1,id2;
+	int peso;
+	do{
+
+	printf("Qual operacao deseja relizar?\n");
+	printf("1 - Criar vertice\n");
+	printf("2 - Criar aresta simples\n");
+	printf("3 - Criar aresta dupla\n");
+	printf("4 - Busca em profundidade\n");
+	printf("5 - Destra\n");
+	printf("6 - ver grafo\n");
+	do{
+		resp = tolower(getch());
+	}while(resp!='1' && resp!='2' && resp!='3' &&resp!='4' &&resp!='5' &&resp!='6')
+
+	if(resp == '1'){
+		printf("Digite o numero da aresta");
+		scanf("%d",&id1);
+		criaVertice(g,id1);
+	}
+	if(resp == '2'){
+		printf("Digite o numero da origem");
+		scanf("%d",&id1);
+		printf("Digite o numero do destino");
+		scanf("%d",&id2);
+		printf("Digite o numero do peso");
+		scanf("%d",&peso);
+		arestaSimples(g,id1,id2,peso);
+	}
+	if(resp == '3'){
+		printf("Digite o numero da origem");
+		scanf("%d",&id1);
+		printf("Digite o numero do destino");
+		scanf("%d",&id2);
+		printf("Digite o numero do peso");
+		scanf("%d",&peso);
+		arestaDupla(g,id1,id2,peso);	
+	}
+	if(resp == '4'){
+		printf("Digite o numero da origem");
+		scanf("%d",&id1);
+		clear();
+		printaGrafo(g);
+		buscaEmProfundidade(g, id1,1);
+		printaGrafo(g);
+		getch();
+		clear();
+	}
+	if(resp == '5'){
+		printf("Digite o numero da origem");
+		scanf("%d",&id1);
+		dijikistra(g,id1);
+		getch();
+		clear();	
+	}
+	if(resp == '6'){
+		printaGrafo(g);
+	}
+	/*for(i=0;i<=5;i++)
 		criaVertice(g, i);
 	arestaSimples(g,1,5,1);
 	arestaSimples(g,1,4,1);
@@ -162,13 +233,21 @@ int main(){
 	arestaSimples(g,4,1,1);
 	arestaSimples(g,5,4,1);	
 	arestaSimples(g,5,1,1);
-	printaGrafo(g);
 	buscaEmProfundidade(g,1,1);
 	printaGrafo(g);
 	desmarcaGeral(g);
+	dijkstra(g);
+	printaGrafo(g);
+	*/
+	printf("deseja reprocessar?(s/n)")
+	do{
+		resp = toupper(getch());
+	}while(resp!='S'&&resp!='N');
+	clear();
+	}while(resp == 'S');
 }
 
-void buscaEmProfundidade(grafo g, int id, int n){	
+int buscaEmProfundidade(grafo g, int id, int n){	
 	vertice p;
 	arestas q;
 //	if(existeVertice(g, id)) return 0;
@@ -184,5 +263,71 @@ void buscaEmProfundidade(grafo g, int id, int n){
 		}
 		q = q->proximaAresta;	 
 	}
+	return 1;
 }
 
+void dijkstra(grafo g, int id){
+	distancias d;
+	vertice p,q;
+	distancias r,s;
+	startaDistancias(g,d);
+	vertice p,q,aux;
+	aux = g->primeiroVertice;
+	while(aux){
+		if(aux->id == id)
+			p = aux;
+		aux = aux->proximoNaOrdemDeInsercao;
+	}
+	r = d;
+	while(r->id!=id)	r = r->prox;
+	r->distancia = 0; 
+	distanciar(g,p);
+	r = d;
+}
+
+int distanciar(grafo g, vertice p){
+	vertice q;
+	arestas r;
+	distancias s;
+	r = p->primeiraAresta;
+	while(r){
+		if(p->dist->distancia + r->distancia < r->verticeVizinho->dist->distancia){
+			r->verticeVizinho->dist->distancia = p->dist->distancia + r->distancia;
+			r->verticeVizinho->dist->deOndeVeio = p->id;
+		}
+		r = r->prox;
+	}
+	marca(r,1);
+	r = proximaAresta;
+	while(r){
+		if(!(r->verticeVizinho->marcado))
+		distanciar(g,r->verticeVizinho);
+		r = r->proximaAresta;
+	}
+
+}
+
+int startaDistancias(grafo g,distancias d){
+	distancias nova,anterior;
+	vertice p;
+	p = g->primeiroVertice;
+	nova = (distancias) malloc (sizeof(struct dij));
+	nova->distancia = M;
+	p->dist=nova;
+	nova->id = p->id;
+	nova->deOndeVeio = -1;
+	nova->prox = NULL;
+	d = nova;
+	anterior = nova;
+	p = p->proximoNaOrdemDeInsercao;
+	while(p){
+		nova = (distancias) malloc (sizeof(struct dij));
+		nova->distancia = M;
+		p->dist=nova;
+		nova->id = p->id;
+		nova->deOndeVeio = -1;
+		nova->prox = NULL;
+		anterior = nova;
+		p = p->proximoNaOrdemDeInsercao;	
+	} 
+}
